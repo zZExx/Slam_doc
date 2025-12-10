@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="MainSequence">
+      <AlwaysSuccess name="Node1"/>
+      <AlwaysSuccess name="Node2"/>
+      <AlwaysSuccess name="Node3"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="MainSequence">
+      <AlwaysSuccess name="InitSystem"/>
+      <AlwaysSuccess name="CheckBattery"/>
+      <AlwaysSuccess name="ExecuteTask"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <TreeNodesModel>
+    <Action ID="AlwaysSuccess"/>
+  </TreeNodesModel>
+</root>

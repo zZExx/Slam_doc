@@ -1,0 +1,95 @@
+# ROS2 工作空间特定
+build/
+install/
+log/
+COLCON_IGNORE
+
+# C++ 编译产物
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+*.bin
+*.lib
+*.obj
+
+# CMake 生成文件
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+CTestTestfile.cmake
+Testing/
+_DartConfiguration.tcl
+
+# IDE 和编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*~
+.*.swp
+*.un~
+tags
+cscope.*
+Session.vim
+.netrwhist
+
+# 日志和临时文件
+*.log
+*.tmp
+*.temp
+core
+*.core
+core.*
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 操作系统特定
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 编辑器备份
+*.bak
+*.BAK
+*.orig
+*.rej
+.*.swp
+.*.swo
+
+# 源代码管理
+.git
+.svn
+.hg
+.bzr
+
+# 环境变量
+.env
+.venv
+env/
+venv/
+ENV/
+
+# 其他
+*.min.*
+*.map
+*.lock
+.idea/
+*.sublime-workspace
+*.sublime-project
+.sconsign.dblite
+*.sconsign
+
