@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="3"
+      main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="ForkliftMain">
+      <Sequence name="Initialization">
+        <SetBlackboard name="InitSystem"
+                       value="initialized"
+                       output_key="system_state"/>
+        <SetBlackboard name="InitBattery"
+                       value="100.0"
+                       output_key="battery_level"/>
+        <SetBlackboard name="InitLocation"
+                       value="home"
+                       output_key="current_location"/>
+        <SetBlackboard name="InitFork"
+                       value="0.0"
+                       output_key="fork_height"/>
+      </Sequence>
+      <Parallel name="MainParallel"
+                failure_threshold="1"
+                success_threshold="1">
+        <Sequence name="MainTaskFlow">
+          <Fallback name="PowerManagement">
+            <BatteryCheck variable="battery_level"
+                          min_value="25.0"/>
+            <Sequence name="ChargeSequence">
+              <AlwaysSuccess name="GoToChargingStation"/>
+              <AlwaysSuccess name="StartCharging"/>
+              <SetBlackboard value="100"
+                             output_key="battery_level"/>
+            </Sequence>
+          </Fallback>
+          <Repeat num_cycles="3">
+            <Sequence name="SingleTask">
+              <Sequence name="PickupTask">
+                <SetBlackboard name="SetPickupGoal"
+                               value="truck"
+                               output_key="goal"/>
+                <AlwaysSuccess name="NavigateToPickup"/>
+                <AlwaysSuccess name="ApproachPallet"/>
+                <AlwaysSuccess name="InsertForks"/>
+                <AlwaysSuccess name="LiftCargo"/>
+                <AlwaysSuccess name="UpdateCargo"/>
+              </Sequence>
+              <Sequence name="DropoffTask">
+                <SetBlackboard name="SetDropoffGoal"
+                               value="shelf"
+                               output_key="goal"/>
+                <AlwaysSuccess name="NavigateToDropoff"/>
+                <AlwaysSuccess name="LowerCargo"/>
+                <AlwaysSuccess name="WithdrawForks"/>
+                <SetBlackboard name="UpdateCargo"
+                               value=""
+                               output_key=""/>
+              </Sequence>
+              <SetBlackboard name="ConsumeBattery"
+                             value="battery_level-15"
+                             output_key="battery_level"/>
+            </Sequence>
+          </Repeat>
+        </Sequence>
+        <Sequence name="SafetyMonitor">
+          <Repeat name="SafetyLoop"
+                  num_cycles="-1">
+            <Fallback name="AllSafetyChecks">
+              <Sequence name="EmergencyCheck">
+                <EmergencyStatus variable="emergency_pressed"
+                                 expected_value="false"/>
+              </Sequence>
+              <Sequence name="FrontObstacle">
+                <ObstacleDistance variable="front_distance"
+                                  min_value="0.8"/>
+              </Sequence>
+              <Sequence name="CommunicationCheck">
+                <AlwaysSuccess/>
+              </Sequence>
+              <Delay name="SafetyInterval"
+                     delay_msec="">
+                <AlwaysSuccess/>
+              </Delay>
+            </Fallback>
+          </Repeat>
+        </Sequence>
+      </Parallel>
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- Description of Node Models (used by Groot) -->
+  <TreeNodesModel>
+    <Condition ID="BatteryCheck"
+               editable="true">
+      <input_port name="variable"
+                  default="battery_level"/>
+      <input_port name="min_value"
+                  default="25.0"/>
+    </Condition>
+    <Condition ID="EmergencyStatus"
+               editable="true">
+      <input_port name="variable"
+                  default="emergency_pressed"/>
+      <input_port name="expected_value"
+                  default="false"/>
+    </Condition>
+    <Condition ID="ObstacleDistance"
+               editable="true">
+      <input_port name="variable"
+                  default="front_distance"/>
+      <input_port name="min_value"
+                  default="0.8"/>
+    </Condition>
+  </TreeNodesModel>
+
+</root>

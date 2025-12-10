@@ -4,7 +4,7 @@
 
 ## 1.1 BT 的定义
 
-行为树（Behavior Tree, BT）是一种用树状结构组织智能体行为逻辑的决策模型。
+行为树（Behavior Tree, BT）是一种用树状结构组织智能体行为逻辑的决策模型。在游戏领域，行为树已经比较流行了。主要用于维护游戏角色的各种动作和状态。这里可以将character换成叉车，用于维护叉车的action及state。
 它具有以下核心特点：
 
 * **层次化结构**：使用树节点表达行为逻辑。
@@ -15,9 +15,7 @@
   * `RUNNING`
 * **逻辑与行为解耦**：高层（控制策略）与底层（动作实现）分离，提高可复用性。
 * **组件化与可编排性**：通过组合节点可以构建复杂任务流程，易调试、易拓展。
-
-BT 最初用于游戏 AI（如 Halo），后来广泛应用于机器人控制（仓储机器人、叉车、移动机器人等）。
-
+* 
 ---
 
 ## 1.2 BT 与 FSM（有限状态机）对比
@@ -48,9 +46,8 @@ BT 最初用于游戏 AI（如 Halo），后来广泛应用于机器人控制（
 * 多任务调度
 * 多阶段作业（移载 / 穿叉 / 升降 / 放置）
 * 同时需兼容安全检测、导航、避障、重规划、故障处理
-  → **非常复杂、且特别适合 BT 的层级与容错结构**
 
-BT 在无人叉车系统中的典型功能包括：
+**BT 在无人叉车系统中的典型功能包括：**
 
 ###  任务级决策
 
@@ -210,129 +207,3 @@ Nav2 使用 **BehaviorTree.CPP**，并定义了大量可复用的 BT 节点。
 | `ClearBlackboard` | 清除字段      |
 
 ---
-
-## 3.3 自动叉车可使用 Nav2 节点实现的 BT 框架示例
-
-```mermaid
-graph TD
-    Root[Root] --> MainSequence[Sequence\nMainWorkflow]
-    
-    MainSequence --> TaskAvailable[Condition\nTaskAvailable?]
-    MainSequence --> SafetyMonitor[Parallel\nSafetyMonitor]
-    MainSequence --> PowerManagement[Selector\nPowerManagement]
-    MainSequence --> ExecuteTask[Sequence\nExecuteTask]
-    MainSequence --> PostTaskHandling[Selector\nPostTaskHandling]
-    
-    SafetyMonitor --> EmergencyStop[Condition\n!EmergencyStop]
-    SafetyMonitor --> ObstacleClear[Condition\nNoObstacle]
-    SafetyMonitor --> CommunicationOK[Condition\nCommunicationOK]
-    
-    PowerManagement --> BatteryOK[Condition\nBattery>30%?]
-    PowerManagement --> ChargeSequence[Sequence\nCharge]
-    
-    ChargeSequence --> GoToCharging[Action\nGoToCharging]
-    ChargeSequence --> AlignCharge[Action\nAlignCharging]
-    ChargeSequence --> StartCharge[Action\nStartCharging]
-    ChargeSequence --> BatteryFull[Condition\nBattery>80%?]
-    
-    ExecuteTask --> SetupPickup[Sequence\nSetupPickup]
-    ExecuteTask --> NavToPickup[Selector\nNavToPickup]
-    ExecuteTask --> PickupCargo[Sequence\nPickup]
-    ExecuteTask --> NavToDropoff[Selector\nNavToDropoff]
-    ExecuteTask --> DropoffCargo[Sequence\nDropoff]
-    
-    SetupPickup --> GetPickup[Action\nGetPickupPose]
-    SetupPickup --> SetPickupGoal[Action\nSetGoal=pickup]
-    
-    NavToPickup --> NormalNav1[Sequence\nNormalNav]
-    NavToPickup --> RecoveryNav1[RecoveryNode\nRecovery]
-    
-    NormalNav1 --> PlanPath1[Action\nComputePath]
-    NormalNav1 --> FollowPath1[Action\nFollowPath]
-    NormalNav1 --> GoalReached1[Condition\nGoalReached?]
-    
-    RecoveryNav1 --> ClearCostmap1[Action\nClearCostmap]
-    RecoveryNav1 --> Replan1[Action\nReplanPath]
-    RecoveryNav1 --> BackupRetry1[Selector\nBackupRetry]
-    
-    BackupRetry1 --> TryBackup1[Sequence\nBackupRetry]
-    BackupRetry1 --> Emergency1[Action\nEmergencyStop]
-    
-    TryBackup1 --> Backup1[Action\nBackup:0.5m]
-    TryBackup1 --> Spin1[Action\nSpin:90°]
-    TryBackup1 --> ReplanAfterBackup1[Action\nReplan]
-    
-    PickupCargo --> ApproachPallet[Action\nApproachSlow]
-    PickupCargo --> AlignPallet[Action\nPreciseAlign]
-    PickupCargo --> ForkInsert[Selector\nForkInsert]
-    PickupCargo --> LiftLoad[Action\nLiftCargo]
-    PickupCargo --> LoadStable[Condition\nLoadStable?]
-    
-    ForkInsert --> InsertSequence[Sequence\nInsertForks]
-    ForkInsert --> RetryInsert[Retry:3\nRetryInsert]
-    
-    InsertSequence --> LowerForks[Action\nLowerForks]
-    InsertSequence --> InsertAction[Action\nInsertForks]
-    InsertSequence --> VerifyInsert[Condition\nInserted?]
-    
-    RetryInsert --> Realign[Action\nRealignPallet]
-    RetryInsert --> AdjustHeight[Action\nAdjustHeight]
-    RetryInsert --> Reinsert[Action\nReinsertForks]
-    
-    NavToDropoff --> NormalNav2[Sequence\nNormalNav2]
-    NavToDropoff --> RecoveryNav2[RecoveryNode\nRecovery2]
-    
-    NormalNav2 --> GetDropoff[Action\nGetDropoffPose]
-    NormalNav2 --> SetDropoffGoal[Action\nSetGoal=dropoff]
-    NormalNav2 --> PlanPath2[Action\nComputePath]
-    NormalNav2 --> FollowPath2[Action\nFollowPath]
-    NormalNav2 --> GoalReached2[Condition\nGoalReached?]
-    
-    RecoveryNav2 --> ClearCostmap2[Action\nClearCostmap]
-    RecoveryNav2 --> Replan2[Action\nReplanPath]
-    RecoveryNav2 --> BackupRetry2[Selector\nBackupRetry2]
-    
-    BackupRetry2 --> TryBackup2[Sequence\nBackupRetry2]
-    BackupRetry2 --> Emergency2[Action\nEmergencyStop]
-    
-    TryBackup2 --> Backup2[Action\nBackup:0.5m]
-    TryBackup2 --> Spin2[Action\nSpin:90°]
-    TryBackup2 --> ReplanAfterBackup2[Action\nReplan]
-    
-    DropoffCargo --> ApproachDropoff[Action\nApproachDropoff]
-    DropoffCargo --> AlignPlacement[Action\nPreciseAlign]
-    DropoffCargo --> LowerLoad[Action\nLowerCargo]
-    DropoffCargo --> WithdrawForks[Action\nWithdrawForks]
-    DropoffCargo --> BackAway[Action\nBackAway]
-    DropoffCargo --> PlacementOK[Condition\nPlacementOK?]
-    
-    PostTaskHandling --> MoreTasks[Condition\nMoreTasks?]
-    PostTaskHandling --> IdleWait[Sequence\nIdleWait]
-    PostTaskHandling --> ReturnHome[Action\nReturnHome]
-    
-    IdleWait --> SetIdle[Action\nSetIdleMode]
-    IdleWait --> WaitTask[Condition\nTaskAvailable?]
-    
-    classDef sequence fill:#e1f5fe,stroke:#01579b
-    classDef selector fill:#e8f5e9,stroke:#1b5e20
-    classDef parallel fill:#fff3e0,stroke:#e65100
-    classDef condition fill:#f3e5f5,stroke:#4a148c
-    classDef action fill:#e3f2fd,stroke:#0d47a1
-    classDef recovery fill:#ffecb3,stroke:#ff6f00
-    classDef root fill:#c8e6c9,stroke:#2e7d32
-    
-    class MainSequence,SetupPickup,ExecuteTask,ChargeSequence,InsertSequence,NormalNav1,NormalNav2,DropoffCargo,IdleWait sequence
-    class PowerManagement,NavToPickup,ForkInsert,NavToDropoff,BackupRetry1,BackupRetry2,PostTaskHandling selector
-    class SafetyMonitor parallel
-    class TaskAvailable,BatteryOK,GoalReached1,GoalReached2,LoadStable,PlacementOK,EmergencyStop,ObstacleClear,CommunicationOK,BatteryFull,MoreTasks,WaitTask condition
-    class GoToCharging,AlignCharge,StartCharge,GetPickup,SetPickupGoal,PlanPath1,FollowPath1,ApproachPallet,AlignPallet,LiftLoad,GetDropoff,SetDropoffGoal,PlanPath2,FollowPath2,ApproachDropoff,AlignPlacement,LowerLoad,WithdrawForks,BackAway,SetIdle,ReturnHome action
-    class RecoveryNav1,RecoveryNav2 recovery
-    class Root root
-```
-
-可扩展性非常强，例如加入：
-
-* 导航失败 → `RecoveryNode`
-* 货物检测失败 → `Retry` 装饰器
-* 安全事件 → `Fallback` 直接切换到 `EmergencyStop`
-
