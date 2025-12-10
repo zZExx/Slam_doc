@@ -312,6 +312,22 @@ graph TD
     
     IdleWait --> SetIdle[Action\nSetIdleMode]
     IdleWait --> WaitTask[Condition\nTaskAvailable?]
+    
+    classDef sequence fill:#e1f5fe,stroke:#01579b
+    classDef selector fill:#e8f5e9,stroke:#1b5e20
+    classDef parallel fill:#fff3e0,stroke:#e65100
+    classDef condition fill:#f3e5f5,stroke:#4a148c
+    classDef action fill:#e3f2fd,stroke:#0d47a1
+    classDef recovery fill:#ffecb3,stroke:#ff6f00
+    classDef root fill:#c8e6c9,stroke:#2e7d32
+    
+    class MainSequence,SetupPickup,ExecuteTask,ChargeSequence,InsertSequence,NormalNav1,NormalNav2,DropoffCargo,IdleWait sequence
+    class PowerManagement,NavToPickup,ForkInsert,NavToDropoff,BackupRetry1,BackupRetry2,PostTaskHandling selector
+    class SafetyMonitor parallel
+    class TaskAvailable,BatteryOK,GoalReached1,GoalReached2,LoadStable,PlacementOK,EmergencyStop,ObstacleClear,CommunicationOK,BatteryFull,MoreTasks,WaitTask condition
+    class GoToCharging,AlignCharge,StartCharge,GetPickup,SetPickupGoal,PlanPath1,FollowPath1,ApproachPallet,AlignPallet,LiftLoad,GetDropoff,SetDropoffGoal,PlanPath2,FollowPath2,ApproachDropoff,AlignPlacement,LowerLoad,WithdrawForks,BackAway,SetIdle,ReturnHome action
+    class RecoveryNav1,RecoveryNav2 recovery
+    class Root root
 ```
 
 可扩展性非常强，例如加入：
