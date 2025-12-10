@@ -39,7 +39,7 @@ BT 最初用于游戏 AI（如 Halo），后来广泛应用于机器人控制（
 
 ---
 
-# 2. 干什么（BT 在无人叉车中的作用）
+# 2. 干什么
 
 ## 2.1 BT 在无人叉车系统中能干什么
 
@@ -158,7 +158,7 @@ BT 可以协调：
 
 ---
 
-## 3.2 Nav2 中的行为树（重点）
+## 3.2 Nav2 中的行为树
 
 Nav2 使用 **BehaviorTree.CPP**，并定义了大量可复用的 BT 节点。
 
@@ -192,7 +192,7 @@ Nav2 使用 **BehaviorTree.CPP**，并定义了大量可复用的 BT 节点。
 
 ## **（三）导航容错节点**
 
-| 节点                   | 功能                            |
+| 节点                  | 功能                            |
 | -------------------- | ----------------------------- |
 | `RecoveryNode`       | 组合多个恢复动作（back up、clear map 等） |
 | `Fallback`           | 选择性执行“正常 → 恢复 → 报错”流程         |
@@ -213,30 +213,105 @@ Nav2 使用 **BehaviorTree.CPP**，并定义了大量可复用的 BT 节点。
 
 ## 3.3 自动叉车可使用 Nav2 节点实现的 BT 框架示例
 
-```
-<Sequence name="AutoForkliftMission">
-    <Condition name="TaskAvailable"/>
-    <SetBlackboard output_key="goal" value="{pickup_pose}"/>
-
-    <!-- 前往取货点 -->
-    <ComputePathToPose goal="{pickup_pose}"/>
-    <FollowPath path="{path_to_pickup}"/>
-
-    <!-- 取货动作（叉车自定义 Action） -->
-    <AlignToPallet/>
-    <InsertFork/>
-    <LiftCargo/>
-
-    <!-- 前往放货点 -->
-    <SetBlackboard output_key="goal" value="{dropoff_pose}"/>
-    <ComputePathToPose goal="{dropoff_pose}"/>
-    <FollowPath path="{path_to_dropoff}"/>
-
-    <!-- 放货动作 -->
-    <PlaceCargo/>
-
-    <ReportCompletion/>
-</Sequence>
+```mermaid
+graph TD
+    Root[Root] --> MainSequence[Sequence\nMainWorkflow]
+    
+    MainSequence --> TaskAvailable[Condition\nTaskAvailable?]
+    MainSequence --> SafetyMonitor[Parallel\nSafetyMonitor]
+    MainSequence --> PowerManagement[Selector\nPowerManagement]
+    MainSequence --> ExecuteTask[Sequence\nExecuteTask]
+    MainSequence --> PostTaskHandling[Selector\nPostTaskHandling]
+    
+    SafetyMonitor --> EmergencyStop[Condition\n!EmergencyStop]
+    SafetyMonitor --> ObstacleClear[Condition\nNoObstacle]
+    SafetyMonitor --> CommunicationOK[Condition\nCommunicationOK]
+    
+    PowerManagement --> BatteryOK[Condition\nBattery>30%?]
+    PowerManagement --> ChargeSequence[Sequence\nCharge]
+    
+    ChargeSequence --> GoToCharging[Action\nGoToCharging]
+    ChargeSequence --> AlignCharge[Action\nAlignCharging]
+    ChargeSequence --> StartCharge[Action\nStartCharging]
+    ChargeSequence --> BatteryFull[Condition\nBattery>80%?]
+    
+    ExecuteTask --> SetupPickup[Sequence\nSetupPickup]
+    ExecuteTask --> NavToPickup[Selector\nNavToPickup]
+    ExecuteTask --> PickupCargo[Sequence\nPickup]
+    ExecuteTask --> NavToDropoff[Selector\nNavToDropoff]
+    ExecuteTask --> DropoffCargo[Sequence\nDropoff]
+    
+    SetupPickup --> GetPickup[Action\nGetPickupPose]
+    SetupPickup --> SetPickupGoal[Action\nSetGoal=pickup]
+    
+    NavToPickup --> NormalNav1[Sequence\nNormalNav]
+    NavToPickup --> RecoveryNav1[RecoveryNode\nRecovery]
+    
+    NormalNav1 --> PlanPath1[Action\nComputePath]
+    NormalNav1 --> FollowPath1[Action\nFollowPath]
+    NormalNav1 --> GoalReached1[Condition\nGoalReached?]
+    
+    RecoveryNav1 --> ClearCostmap1[Action\nClearCostmap]
+    RecoveryNav1 --> Replan1[Action\nReplanPath]
+    RecoveryNav1 --> BackupRetry1[Selector\nBackupRetry]
+    
+    BackupRetry1 --> TryBackup1[Sequence\nBackupRetry]
+    BackupRetry1 --> Emergency1[Action\nEmergencyStop]
+    
+    TryBackup1 --> Backup1[Action\nBackup:0.5m]
+    TryBackup1 --> Spin1[Action\nSpin:90°]
+    TryBackup1 --> ReplanAfterBackup1[Action\nReplan]
+    
+    PickupCargo --> ApproachPallet[Action\nApproachSlow]
+    PickupCargo --> AlignPallet[Action\nPreciseAlign]
+    PickupCargo --> ForkInsert[Selector\nForkInsert]
+    PickupCargo --> LiftLoad[Action\nLiftCargo]
+    PickupCargo --> LoadStable[Condition\nLoadStable?]
+    
+    ForkInsert --> InsertSequence[Sequence\nInsertForks]
+    ForkInsert --> RetryInsert[Retry:3\nRetryInsert]
+    
+    InsertSequence --> LowerForks[Action\nLowerForks]
+    InsertSequence --> InsertAction[Action\nInsertForks]
+    InsertSequence --> VerifyInsert[Condition\nInserted?]
+    
+    RetryInsert --> Realign[Action\nRealignPallet]
+    RetryInsert --> AdjustHeight[Action\nAdjustHeight]
+    RetryInsert --> Reinsert[Action\nReinsertForks]
+    
+    NavToDropoff --> NormalNav2[Sequence\nNormalNav2]
+    NavToDropoff --> RecoveryNav2[RecoveryNode\nRecovery2]
+    
+    NormalNav2 --> GetDropoff[Action\nGetDropoffPose]
+    NormalNav2 --> SetDropoffGoal[Action\nSetGoal=dropoff]
+    NormalNav2 --> PlanPath2[Action\nComputePath]
+    NormalNav2 --> FollowPath2[Action\nFollowPath]
+    NormalNav2 --> GoalReached2[Condition\nGoalReached?]
+    
+    RecoveryNav2 --> ClearCostmap2[Action\nClearCostmap]
+    RecoveryNav2 --> Replan2[Action\nReplanPath]
+    RecoveryNav2 --> BackupRetry2[Selector\nBackupRetry2]
+    
+    BackupRetry2 --> TryBackup2[Sequence\nBackupRetry2]
+    BackupRetry2 --> Emergency2[Action\nEmergencyStop]
+    
+    TryBackup2 --> Backup2[Action\nBackup:0.5m]
+    TryBackup2 --> Spin2[Action\nSpin:90°]
+    TryBackup2 --> ReplanAfterBackup2[Action\nReplan]
+    
+    DropoffCargo --> ApproachDropoff[Action\nApproachDropoff]
+    DropoffCargo --> AlignPlacement[Action\nPreciseAlign]
+    DropoffCargo --> LowerLoad[Action\nLowerCargo]
+    DropoffCargo --> WithdrawForks[Action\nWithdrawForks]
+    DropoffCargo --> BackAway[Action\nBackAway]
+    DropoffCargo --> PlacementOK[Condition\nPlacementOK?]
+    
+    PostTaskHandling --> MoreTasks[Condition\nMoreTasks?]
+    PostTaskHandling --> IdleWait[Sequence\nIdleWait]
+    PostTaskHandling --> ReturnHome[Action\nReturnHome]
+    
+    IdleWait --> SetIdle[Action\nSetIdleMode]
+    IdleWait --> WaitTask[Condition\nTaskAvailable?]
 ```
 
 可扩展性非常强，例如加入：
