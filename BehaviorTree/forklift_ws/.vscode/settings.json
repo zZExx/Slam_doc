@@ -1,0 +1,16 @@
+{
+    "C_Cpp.default.configuration": "ROS2 Humble",
+    "C_Cpp.errorSquiggles": "Enabled",
+    "C_Cpp.intelliSenseEngine": "default",
+    "editor.formatOnSave": true,
+    "files.associations": {
+        "*.xml": "xml",
+        "*.launch": "xml"
+    },
+    "terminal.integrated.env.linux": {
+        "PATH": "/opt/ros/humble/bin:${env:PATH}",
+        "AMENT_PREFIX_PATH": "${workspaceFolder}/install:/opt/ros/humble",
+        "ROS_DOMAIN_ID": "0",
+        "ROS_LOCALHOST_ONLY": "1"
+    }
+}

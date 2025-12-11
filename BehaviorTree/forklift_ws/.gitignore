@@ -26,7 +26,7 @@ Testing/
 _DartConfiguration.tcl
 
 # IDE 和编辑器
-.vscode/
+# .vscode/
 .idea/
 *.swp
 *.swo
