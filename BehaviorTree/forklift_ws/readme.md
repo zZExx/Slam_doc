@@ -11,3 +11,11 @@ forklift_bt/
 
 git clone https://github.com/zZExx/Slam_doc.git
 
+# 1. 构建项目
+cd ~/Desktop/Slam_doc/BehaviorTree/forklift_ws
+rm -rf build install log
+colcon build --packages-select forklift_bt
+
+# 2. 运行节点
+source install/setup.bash
+ros2 run forklift_bt forklift_bt_node
