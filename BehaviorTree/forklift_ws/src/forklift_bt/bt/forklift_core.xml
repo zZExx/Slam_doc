@@ -1,10 +1,373 @@
-<?xml version="1.0"?>
-<root main_tree_to_execute="MainTree">
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="3" main_tree_to_execute="MainTree">
+  
+  <!-- 主行为树 -->
   <BehaviorTree ID="MainTree">
-    <Sequence name="MainSequence">
-      <AlwaysSuccess name="Node1"/>
-      <AlwaysSuccess name="Node2"/>
-      <AlwaysSuccess name="Node3"/>
+    <Sequence name="ForkliftMainSequence">
+      
+      <!-- 1. 系统初始化 -->
+      <!-- 注意：battery_level, emergency_stop, obstacle_distance 已在 C++ 代码中初始化 -->
+      <Sequence name="SystemInitialization">
+        <SetBlackboard name="InitSystemState" value="initialized" output_key="system_state"/>
+        <SetBlackboard name="InitForkHeight" value="0.0" output_key="fork_height"/>
+        <SetBlackboard name="InitHasCargo" value="false" output_key="has_cargo"/>
+        <SetBlackboard name="InitCurrentLocation" value="home" output_key="current_location"/>
+        <SetBlackboard name="InitTaskCount" value="0" output_key="task_count"/>
+      </Sequence>
+
+      <!-- 2. 主任务流程（并行执行安全监控） -->
+      <Parallel name="MainParallelExecution" 
+                failure_threshold="1" 
+                success_threshold="1">
+        
+        <!-- 2.1 主任务序列 -->
+        <Sequence name="MainTaskSequence">
+          
+          <!-- 2.1.1 电池管理（低电时充电） -->
+          <Fallback name="PowerManagement">
+            <!-- 检查电池是否充足 -->
+            <BatteryCheckCondition name="CheckBatterySufficient" min_value="25.0"/>
+            
+            <!-- 低电时执行充电流程 -->
+            <Sequence name="ChargingSequence">
+              <AlwaysSuccess name="LogLowBattery"/>
+              <SetBlackboard name="SetChargingGoal" value="charging_station" output_key="goal_location"/>
+              <!-- 导航到充电站 -->
+              <NavigateToGoalAction name="NavigateToChargingStation" 
+                                    goal_key="goal_location" 
+                                    timeout="5.0"/>
+              <!-- 对位充电桩 -->
+              <AlwaysSuccess name="ApproachChargingDock"/>
+              <!-- 开始充电 -->
+              <AlwaysSuccess name="StartCharging"/>
+              <!-- 等待充电完成 -->
+              <AlwaysSuccess name="WaitForChargingComplete"/>
+              <!-- 更新电池电量 - 由 C++ 代码管理，这里只做标记 -->
+              <AlwaysSuccess name="RechargeBattery"/>
+              <AlwaysSuccess name="DisconnectCharger"/>
+            </Sequence>
+          </Fallback>
+
+          <!-- 2.1.2 执行多个取货-卸货任务循环 -->
+          <Repeat name="TaskLoop" num_cycles="3">
+            <Sequence name="SinglePickAndPlaceTask">
+              
+              <!-- 取货任务 -->
+              <Sequence name="PickupTaskSequence">
+                <AlwaysSuccess name="LogStartPickup"/>
+                
+                <!-- 设置取货目标 -->
+                <SetBlackboard name="SetPickupLocation" value="pickup_zone_A" output_key="goal_location"/>
+                <SetBlackboard name="SetTaskType" value="pickup" output_key="task_type"/>
+                
+                <!-- 取货流程（带异常恢复） -->
+                <Fallback name="PickupWithRecovery">
+                  <!-- 正常取货流程 -->
+                  <Sequence name="NormalPickupFlow">
+                    <!-- 导航到取货点 -->
+                    <RetryUntilSuccessful name="NavigateToPickupRetry" num_attempts="3">
+                      <NavigateToGoalAction name="NavigateToPickup" 
+                                            goal_key="goal_location" 
+                                            timeout="3.0"/>
+                    </RetryUntilSuccessful>
+                    
+                    <!-- 对位托盘 -->
+                    <RetryUntilSuccessful name="ApproachPalletRetry" num_attempts="3">
+                      <Sequence name="ApproachPallet">
+                        <AlwaysSuccess name="DetectPallet"/>
+                        <AlwaysSuccess name="FinePositioning"/>
+                        <AlwaysSuccess name="CheckPositionAccuracy"/>
+                      </Sequence>
+                    </RetryUntilSuccessful>
+                    
+                    <!-- 插叉操作 -->
+                    <Sequence name="InsertForksSequence">
+                      <AlwaysSuccess name="LowerForksToInsertHeight"/>
+                      <AlwaysSuccess name="InsertForksForward"/>
+                      <AlwaysSuccess name="CheckForksInserted"/>
+                    </Sequence>
+                    
+                    <!-- 升降货物 -->
+                    <Sequence name="LiftCargoSequence">
+                      <AlwaysSuccess name="LiftForksWithCargo"/>
+                      <SetBlackboard name="UpdateForkHeight" value="1.5" output_key="fork_height"/>
+                      <AlwaysSuccess name="CheckCargoLifted"/>
+                    </Sequence>
+                    
+                    <!-- 确认取货成功 -->
+                    <Sequence name="ConfirmPickupSuccess">
+                      <AlwaysSuccess name="VerifyCargoAttached"/>
+                      <SetBlackboard name="SetHasCargo" value="true" output_key="has_cargo"/>
+                      <AlwaysSuccess name="LogPickupSuccess"/>
+                    </Sequence>
+                  </Sequence>
+                  
+                  <!-- 取货失败恢复 -->
+                  <Sequence name="PickupRecovery">
+                    <AlwaysSuccess name="LogPickupFailure"/>
+                    <AlwaysSuccess name="WithdrawForks"/>
+                    <SetBlackboard name="ResetForkHeight" value="0.0" output_key="fork_height"/>
+                    <AlwaysSuccess name="BackupFromPallet"/>
+                    <!-- 重试或放弃 -->
+                    <AlwaysSuccess name="HandlePickupFailure"/>
+                  </Sequence>
+                </Fallback>
+              </Sequence>
+
+              <!-- 卸货任务 -->
+              <Sequence name="DropoffTaskSequence">
+                <AlwaysSuccess name="LogStartDropoff"/>
+                
+                <!-- 检查是否有货物 -->
+                <HasCargoCondition name="CheckHasCargo"/>
+                
+                <!-- 设置卸货目标 -->
+                <SetBlackboard name="SetDropoffLocation" value="dropoff_zone_B" output_key="goal_location"/>
+                <SetBlackboard name="SetTaskType" value="dropoff" output_key="task_type"/>
+                
+                <!-- 卸货流程（带异常恢复） -->
+                <Fallback name="DropoffWithRecovery">
+                  <!-- 正常卸货流程 -->
+                  <Sequence name="NormalDropoffFlow">
+                    <!-- 导航到卸货点 -->
+                    <RetryUntilSuccessful name="NavigateToDropoffRetry" num_attempts="3">
+                      <NavigateToGoalAction name="NavigateToDropoff" 
+                                            goal_key="goal_location" 
+                                            timeout="3.0"/>
+                    </RetryUntilSuccessful>
+                    
+                    <!-- 对位卸货位置 -->
+                    <RetryUntilSuccessful name="ApproachDropoffRetry" num_attempts="3">
+                      <Sequence name="ApproachDropoff">
+                        <AlwaysSuccess name="DetectDropoffTarget"/>
+                        <AlwaysSuccess name="FinePositioningForDropoff"/>
+                        <AlwaysSuccess name="CheckDropoffPositionAccuracy"/>
+                      </Sequence>
+                    </RetryUntilSuccessful>
+                    
+                    <!-- 下降货物 -->
+                    <Sequence name="LowerCargoSequence">
+                      <AlwaysSuccess name="LowerForksWithCargo"/>
+                      <SetBlackboard name="UpdateForkHeightDropoff" value="0.1" output_key="fork_height"/>
+                      <AlwaysSuccess name="CheckCargoLowered"/>
+                    </Sequence>
+                    
+                    <!-- 退叉操作 -->
+                    <Sequence name="WithdrawForksSequence">
+                      <AlwaysSuccess name="WithdrawForksBackward"/>
+                      <AlwaysSuccess name="CheckForksWithdrawn"/>
+                    </Sequence>
+                    
+                    <!-- 确认卸货成功 -->
+                    <Sequence name="ConfirmDropoffSuccess">
+                      <AlwaysSuccess name="VerifyCargoDetached"/>
+                      <SetBlackboard name="SetHasCargo" value="false" output_key="has_cargo"/>
+                      <SetBlackboard name="ResetForkHeightAfterDropoff" value="0.0" output_key="fork_height"/>
+                      <AlwaysSuccess name="LogDropoffSuccess"/>
+                    </Sequence>
+                  </Sequence>
+                  
+                  <!-- 卸货失败恢复 -->
+                  <Sequence name="DropoffRecovery">
+                    <AlwaysSuccess name="LogDropoffFailure"/>
+                    <AlwaysSuccess name="LiftForksEmergency"/>
+                    <AlwaysSuccess name="BackupFromDropoff"/>
+                    <!-- 重试或放弃 -->
+                    <AlwaysSuccess name="HandleDropoffFailure"/>
+                  </Sequence>
+                </Fallback>
+              </Sequence>
+
+              <!-- 更新任务计数和电池消耗 -->
+              <Sequence name="UpdateTaskStatus">
+                <!-- 电池消耗由 C++ 代码的 updateSensorData() 管理，这里只更新任务计数 -->
+                <SetBlackboard name="IncrementTaskCount" value="1" output_key="task_count"/>
+                <AlwaysSuccess name="ConsumeBatteryPerTask"/>
+                <AlwaysSuccess name="LogTaskCompleted"/>
+              </Sequence>
+            </Sequence>
+          </Repeat>
+          
+          <!-- 所有任务完成 -->
+          <AlwaysSuccess name="LogAllTasksCompleted"/>
+        </Sequence>
+
+        <!-- 2.2 并行安全监控（持续运行） -->
+        <Sequence name="SafetyMonitoringSequence">
+          <Repeat name="SafetyLoop" num_cycles="-1">
+            <Sequence name="SafetyChecks">
+              
+              <!-- 紧急停止检查（最高优先级） -->
+              <Fallback name="EmergencyStopCheck">
+                <EmergencyStopCondition name="CheckEmergencyStopNotPressed"/>
+                <Sequence name="EmergencyStopHandler">
+                  <AlwaysSuccess name="LogEmergencyStop"/>
+                  <AlwaysSuccess name="StopAllMotors"/>
+                  <AlwaysSuccess name="ActivateBrakes"/>
+                  <!-- 等待紧急停止解除 -->
+                  <AlwaysSuccess name="WaitForEmergencyRelease"/>
+                </Sequence>
+              </Fallback>
+
+              <!-- 障碍物检测 -->
+              <Fallback name="ObstacleCheck">
+                <ObstacleDistanceCondition name="CheckObstacleDistanceSafe" min_value="0.8"/>
+                <Sequence name="ObstacleAvoidance">
+                  <AlwaysSuccess name="LogObstacleDetected"/>
+                  <AlwaysSuccess name="StopMovement"/>
+                  <AlwaysSuccess name="WaitForObstacleClear"/>
+                </Sequence>
+              </Fallback>
+
+              <!-- 传感器状态检查 -->
+              <Sequence name="SensorHealthCheck">
+                <AlwaysSuccess name="CheckLidarStatus"/>
+                <AlwaysSuccess name="CheckIMUStatus"/>
+                <AlwaysSuccess name="CheckForkSensorStatus"/>
+              </Sequence>
+
+              <!-- 通信状态检查 -->
+              <Sequence name="CommunicationCheck">
+                <AlwaysSuccess name="CheckROSConnection"/>
+                <AlwaysSuccess name="CheckTaskServerConnection"/>
+              </Sequence>
+
+              <!-- 安全监控间隔 -->
+              <Delay name="SafetyCheckInterval" delay_msec="100">
+                <AlwaysSuccess name="SafetyIntervalWait"/>
+              </Delay>
+            </Sequence>
+          </Repeat>
+        </Sequence>
+      </Parallel>
+
+      <!-- 3. 系统关闭 -->
+      <Sequence name="SystemShutdown">
+        <AlwaysSuccess name="LogSystemShutdown"/>
+        <NavigateToGoalAction name="ReturnToHome" 
+                              goal_location="home" 
+                              timeout="5.0"/>
+        <SetBlackboard name="FinalSystemState" value="shutdown" output_key="system_state"/>
+      </Sequence>
     </Sequence>
   </BehaviorTree>
+
+  <!-- 节点模型定义（用于 Groot 可视化） -->
+  <TreeNodesModel>
+    <!-- 条件节点 -->
+    <Condition ID="CheckBatterySufficient">
+      <description>检查电池电量是否充足</description>
+    </Condition>
+    
+    <Condition ID="CheckHasCargo">
+      <description>检查是否携带货物</description>
+    </Condition>
+    
+    <Condition ID="CheckEmergencyStopNotPressed">
+      <description>检查紧急停止是否未按下</description>
+    </Condition>
+    
+    <Condition ID="CheckObstacleDistanceSafe">
+      <description>检查障碍物距离是否安全</description>
+    </Condition>
+
+    <!-- 动作节点 - 导航相关 -->
+    <Action ID="NavigateToPickupStation">
+      <description>导航到取货站</description>
+    </Action>
+    
+    <Action ID="NavigateToDropoffStation">
+      <description>导航到卸货站</description>
+    </Action>
+    
+    <Action ID="NavigateToChargingStation">
+      <description>导航到充电站</description>
+    </Action>
+
+    <!-- 动作节点 - 对位相关 -->
+    <Action ID="ApproachPallet">
+      <description>对位托盘</description>
+    </Action>
+    
+    <Action ID="ApproachDropoff">
+      <description>对位卸货位置</description>
+    </Action>
+    
+    <Action ID="ApproachChargingDock">
+      <description>对位充电桩</description>
+    </Action>
+
+    <!-- 动作节点 - 叉车操作 -->
+    <Action ID="InsertForksForward">
+      <description>向前插叉</description>
+    </Action>
+    
+    <Action ID="WithdrawForksBackward">
+      <description>向后退叉</description>
+    </Action>
+    
+    <Action ID="LiftForksWithCargo">
+      <description>升起货叉（带货物）</description>
+    </Action>
+    
+    <Action ID="LowerForksWithCargo">
+      <description>降低货叉（带货物）</description>
+    </Action>
+    
+    <Action ID="LowerForksToInsertHeight">
+      <description>降低货叉到插入高度</description>
+    </Action>
+
+    <!-- 动作节点 - 安全检查 -->
+    <Action ID="StopAllMotors">
+      <description>停止所有电机</description>
+    </Action>
+    
+    <Action ID="ActivateBrakes">
+      <description>激活制动</description>
+    </Action>
+    
+    <Action ID="StopMovement">
+      <description>停止运动</description>
+    </Action>
+
+    <!-- 动作节点 - 传感器检查 -->
+    <Action ID="CheckLidarStatus">
+      <description>检查激光雷达状态</description>
+    </Action>
+    
+    <Action ID="CheckIMUStatus">
+      <description>检查IMU状态</description>
+    </Action>
+    
+    <Action ID="CheckForkSensorStatus">
+      <description>检查货叉传感器状态</description>
+    </Action>
+    
+    <Action ID="CheckROSConnection">
+      <description>检查ROS连接</description>
+    </Action>
+    
+    <Action ID="CheckTaskServerConnection">
+      <description>检查任务服务器连接</description>
+    </Action>
+
+    <!-- 动作节点 - 其他 -->
+    <Action ID="StartCharging">
+      <description>开始充电</description>
+    </Action>
+    
+    <Action ID="WaitForChargingComplete">
+      <description>等待充电完成</description>
+    </Action>
+    
+    <Action ID="DisconnectCharger">
+      <description>断开充电器</description>
+    </Action>
+    
+    <Action ID="ReturnToHome">
+      <description>返回起始位置</description>
+    </Action>
+  </TreeNodesModel>
+
 </root>

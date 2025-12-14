@@ -8,6 +8,15 @@
 #include <thread>
 #include <memory>
 
+// 自定义条件节点
+#include "forklift_bt/battery_check_condition.hpp"
+#include "forklift_bt/emergency_stop_condition.hpp"
+#include "forklift_bt/obstacle_distance_condition.hpp"
+#include "forklift_bt/has_cargo_condition.hpp"
+
+// 自定义动作节点
+#include "forklift_bt/navigate_to_goal_action.hpp"
+
 class ForkliftBTNode : public rclcpp::Node
 {
 public:
@@ -19,7 +28,11 @@ public:
     sensor_timer_ = this->create_wall_timer(
       std::chrono::milliseconds(500),
       std::bind(&ForkliftBTNode::updateSensorData, this));
-    
+  }
+  
+  void initialize()
+  {
+    // 延迟初始化行为树，确保shared_from_this()可用
     initializeBehaviorTree();
   }
 
@@ -64,6 +77,17 @@ private:
     try {
       BT::BehaviorTreeFactory factory;
       
+      // 注册自定义条件节点
+      factory.registerNodeType<forklift_bt::BatteryCheckCondition>("BatteryCheckCondition");
+      factory.registerNodeType<forklift_bt::EmergencyStopCondition>("EmergencyStopCondition");
+      factory.registerNodeType<forklift_bt::ObstacleDistanceCondition>("ObstacleDistanceCondition");
+      factory.registerNodeType<forklift_bt::HasCargoCondition>("HasCargoCondition");
+      
+      // 注册自定义动作节点
+      factory.registerNodeType<forklift_bt::NavigateToGoalAction>("NavigateToGoalAction");
+      
+      RCLCPP_INFO(this->get_logger(), "已注册自定义条件节点和动作节点");
+      
       // 获取XML路径
       std::string package_share_dir = ament_index_cpp::get_package_share_directory("forklift_bt");
       std::string bt_xml_path = package_share_dir + "/bt/forklift_core.xml";
@@ -83,6 +107,11 @@ private:
         tree_.rootBlackboard()->set("battery_level", 100.0);
         tree_.rootBlackboard()->set("emergency_stop", false);
         tree_.rootBlackboard()->set("obstacle_distance", 5.0);
+        
+        // 将 ROS 节点添加到黑板，供动作节点使用
+        // 使用 shared_from_this() 获取当前节点的共享指针
+        auto node_ptr = std::static_pointer_cast<rclcpp::Node>(shared_from_this());
+        tree_.rootBlackboard()->set("node", node_ptr);
       }
       
       // 添加日志记录器
@@ -152,6 +181,9 @@ int main(int argc, char** argv)
 {
   rclcpp::init(argc, argv);
   auto node = std::make_shared<ForkliftBTNode>();
+  
+  // 初始化行为树（在shared_from_this()可用后）
+  node->initialize();
   
   // 创建行为树执行定时器
   auto bt_timer = node->create_wall_timer(
