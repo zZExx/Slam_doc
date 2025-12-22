@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="3" main_tree_to_execute="TestTree">
+
+  <BehaviorTree ID="TestTree">
+    <ReactiveSequence name="BasicTestSequence">
+
+      <!-- 1. 紧急停止保护：使用 ReactiveSequence 确保每个 tick 都重新检查 -->
+      <!-- 如果 emergency_stop 为 true，则本节点返回 FAILURE，整条 Sequence 立即失败 -->
+      <EmergencyStopCondition name="CheckEmergencyStop" emergency_key="emergency_stop"/>
+
+      <!-- 2. 设置目标位置到黑板（只在第一次执行） -->
+      <SetBlackboard name="SetGoalLocation"
+                     value="pickup_zone_A"
+                     output_key="goal_location"/>
+
+      <SetBlackboard name="SetGoalKey"
+                     value="goal_location"
+                     output_key="goal_key"/>
+
+      <!-- 3. 导航到目标点，使用 Fallback 节点演示恢复机制 -->
+      <!-- Fallback: 先尝试正常导航，失败时执行恢复动作，然后重试导航 -->
+      <Fallback name="NavigateWithRecovery">
+        
+        <!-- 3.1 正常导航流程 -->
+        <NavigateToGoalAction name="NavigateToGoal"
+                              goal_key="goal_location"
+                              timeout="10.0"/>
+        
+        <!-- 3.2 恢复流程：导航失败时执行恢复动作，然后重试导航 -->
+        <Sequence name="RecoverySequence">
+          
+          <!-- 执行恢复动作（清除代价地图），使用较长时间以便观察流程 -->
+          <RecoveryAction name="ClearCostmapRecovery"
+                          recovery_type="clear_costmap"
+                          duration="2.0"/>
+          
+          <!-- 恢复后重试导航 -->
+          <NavigateToGoalAction name="RetryNavigateAfterRecovery"
+                                goal_key="goal_location"
+                                timeout="10.0"/>
+        </Sequence>
+        
+      </Fallback>
+
+    </ReactiveSequence>
+  </BehaviorTree>
+
+</root>
+

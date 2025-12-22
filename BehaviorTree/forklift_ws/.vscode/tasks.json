@@ -2,36 +2,28 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "colcon: build",
+            "label": "build_debug",
             "type": "shell",
-            "command": "rm -rf build install log && colcon build --packages-select forklift_bt",
-            "group": "build",
-            "problemMatcher": ["$gcc"],
+            "command": "rm -rf build/forklift_bt install/forklift_bt log && colcon build --packages-select forklift_bt --cmake-args -DCMAKE_BUILD_TYPE=Debug",
             "options": {
                 "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
             }
         },
         {
-            "label": "colcon: source setup",
+            "label": "clean_build",
             "type": "shell",
-            "command": "source install/setup.bash",
-            "problemMatcher": [],
+            "command": "rm -rf build install log && colcon build --packages-select forklift_bt --cmake-args -DCMAKE_BUILD_TYPE=Debug",
             "options": {
                 "cwd": "${workspaceFolder}"
-            }
-        },
-        {
-            "label": "ros2: run node",
-            "type": "shell",
-            "command": "ros2 run forklift_bt forklift_bt_node",
-            "problemMatcher": [],
-            "options": {
-                "cwd": "${workspaceFolder}",
-                "env": {
-                    "AMENT_PREFIX_PATH": "${workspaceFolder}/install:/opt/ros/humble",
-                    "LD_LIBRARY_PATH": "${workspaceFolder}/install/forklift_bt/lib:${env:LD_LIBRARY_PATH}"
-                }
-            }
+            },
+            "problemMatcher": []
         }
     ]
 }

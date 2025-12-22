@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="3" project_name="Project">
+    <include path="test_tree.xml"/>
+    <!-- Description of Node Models (used by Groot) -->
+    <TreeNodesModel>
+        <Condition ID="EmergencyStopCondition" editable="true">
+            <input_port name="emergency_key"/>
+        </Condition>
+        <Action ID="NavigateToGoalAction" editable="true">
+            <input_port name="goal_key"/>
+            <input_port name="timeout"/>
+        </Action>
+        <Action ID="RecoveryAction" editable="true">
+            <input_port name="recovery_type"/>
+            <input_port name="duration"/>
+        </Action>
+    </TreeNodesModel>
+</root>

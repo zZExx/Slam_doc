@@ -162,6 +162,13 @@ public:
       return BT::NodeStatus::FAILURE;
     }
 
+    // 检查停止标志
+    bool halt_navigation = false;
+    if (config().blackboard->get("halt_navigation", halt_navigation) && halt_navigation) {
+      RCLCPP_WARN(node_->get_logger(), "[导航] 收到停止请求，正在停止导航...");
+      return BT::NodeStatus::FAILURE;
+    }
+
 #ifdef NAV2_MSGS_FOUND
     if (use_nav2_ && goal_handle_) {
       // 检查 Nav2 目标状态

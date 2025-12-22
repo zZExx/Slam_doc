@@ -8,6 +8,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(behaviortree_cpp_v3 REQUIRED)
+find_package(std_srvs REQUIRED)
 
 # Nav2 依赖（可选，如果没有安装则使用模拟模式）
 find_package(nav2_msgs QUIET)
@@ -45,7 +46,38 @@ target_link_libraries(forklift_bt_node
   BT::behaviortree_cpp_v3
 )
 
-install(TARGETS forklift_bt_node
+# 测试节点可执行文件
+add_executable(forklift_bt_test src/bt_node_test.cpp)
+
+target_include_directories(forklift_bt_test PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+# 测试节点使用相同的依赖配置
+if(nav2_msgs_FOUND)
+  target_compile_definitions(forklift_bt_test PRIVATE NAV2_MSGS_FOUND)
+  ament_target_dependencies(forklift_bt_test
+    rclcpp
+    behaviortree_cpp_v3
+    std_srvs
+    nav2_msgs
+    geometry_msgs
+    rclcpp_action
+  )
+else()
+  ament_target_dependencies(forklift_bt_test
+    rclcpp
+    behaviortree_cpp_v3
+    std_srvs
+  )
+endif()
+
+target_link_libraries(forklift_bt_test
+  BT::behaviortree_cpp_v3
+)
+
+install(TARGETS forklift_bt_node forklift_bt_test
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY bt/

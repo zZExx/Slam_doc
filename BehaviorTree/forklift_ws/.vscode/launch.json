@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "C++: Debug forklift_bt_node",
+            "name": "Debug forklift_bt_test",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/install/forklift_bt/lib/forklift_bt/forklift_bt_node",
+            "program": "${workspaceFolder}/install/forklift_bt/lib/forklift_bt/forklift_bt_test",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -15,12 +15,8 @@
                     "value": "${workspaceFolder}/install/forklift_bt/lib:${env:LD_LIBRARY_PATH}"
                 },
                 {
-                    "name": "AMENT_PREFIX_PATH",
-                    "value": "${workspaceFolder}/install:/opt/ros/humble"
-                },
-                {
-                    "name": "RMW_IMPLEMENTATION",
-                    "value": "rmw_fastrtps_cpp"
+                    "name": "ROS_DOMAIN_ID",
+                    "value": "${env:ROS_DOMAIN_ID}"
                 }
             ],
             "externalConsole": false,
@@ -30,8 +26,22 @@
                     "description": "Enable pretty-printing for gdb",
                     "text": "-enable-pretty-printing",
                     "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
                 }
-            ]
+            ],
+            "preLaunchTask": "build_debug",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "logging": {
+                "moduleLoad": false,
+                "trace": false,
+                "engineLogging": false,
+                "programOutput": true,
+                "exceptions": true
+            }
         }
     ]
 }

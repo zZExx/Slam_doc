@@ -47,7 +47,7 @@ public:
       // 打印当前状态
       static int tick_count = 0;
       tick_count++;
-      if (tick_count % 10 == 0) { // 每10次tick打印一次
+      if (tick_count % 1 == 0) { // 每次tick打印一次
         double battery = 0.0;
         if (tree_.rootBlackboard()->get("battery_level", battery)) {
           RCLCPP_INFO(this->get_logger(), "电池: %.1f%% | Tick: %d | 状态: %s", 
