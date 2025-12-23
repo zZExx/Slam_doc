@@ -344,3 +344,175 @@ Tick 81:
 > **为什么模拟耗时时间和tick总耗时时间不一致？**
 > 
 > timeout模拟耗时是按照真实时间，而**非按tick数量计算**
+
+
+### 2.3 导航过程中紧急停止
+```
+INFO] [1766479642.034315669] [main]: 行为树测试节点运行中...
+[INFO] [1766479642.034319430] [main]: 可用服务:
+[INFO] [1766479642.034321660] [main]:   停止导航（触发恢复）: ros2 service call /halt_navigation std_srvs/srv/Empty
+[INFO] [1766479642.034324052] [main]:   紧急停止（立即停止）: ros2 service call /emergency_stop std_srvs/srv/Empty
+[1766479642.136]: MainTaskSequence          IDLE -> RUNNING
+[1766479642.136]: SetGoalLocation           IDLE -> SUCCESS
+[1766479642.136]: SetGoalKey                IDLE -> SUCCESS
+[1766479642.136]: NavigateWithRecovery      IDLE -> RUNNING
+[INFO] [1766479642.646625868] [forklift_bt_test]: [Nav2] 服务不可用，使用模拟模式
+[INFO] [1766479642.646715487] [forklift_bt_test]: [模拟导航] 开始导航到: pickup_zone_A (2.00, 1.00)
+[1766479642.647]: NavigateToGoal            IDLE -> RUNNING
+[1766479642.647]: SafetyMonitor             IDLE -> RUNNING
+[1766479642.647]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479642.647]: CheckEmergencyStop        SUCCESS -> IDLE
+[1766479642.647]: MainParallel              IDLE -> RUNNING
+[INFO] [1766479642.646782832] [forklift_bt_test]: Tick 1 - tree status: RUNNING
+[1766479642.647]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479642.647]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479642.646884601] [forklift_bt_test]: Tick 2 - tree status: RUNNING
+[1766479642.747]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479642.747]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479642.746626755] [forklift_bt_test]: Tick 3 - tree status: RUNNING
+[1766479642.849]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479642.849]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479642.849210958] [forklift_bt_test]: Tick 4 - tree status: RUNNING
+[ERROR] [1766479642.913600738] [forklift_bt_test]: 紧急停止触发！安全监控将立即停止整个系统
+[ERROR] [1766479642.950712665] [EmergencyStopCondition]: 紧急停止已触发!
+[1766479642.951]: CheckEmergencyStop        IDLE -> FAILURE
+[1766479642.951]: CheckEmergencyStop        FAILURE -> IDLE
+[1766479642.951]: SafetyMonitor             RUNNING -> FAILURE
+[1766479642.951]: SetGoalLocation           SUCCESS -> IDLE
+[1766479642.951]: SetGoalKey                SUCCESS -> IDLE
+[INFO] [1766479642.950790444] [forklift_bt_test]: 导航被中断
+[1766479642.951]: NavigateToGoal            RUNNING -> IDLE
+[1766479642.951]: NavigateWithRecovery      RUNNING -> IDLE
+[1766479642.951]: MainTaskSequence          RUNNING -> IDLE
+[1766479642.951]: SafetyMonitor             FAILURE -> IDLE
+[1766479642.951]: MainParallel              RUNNING -> FAILURE
+[1766479642.951]: MainParallel              FAILURE -> IDLE
+[INFO] [1766479642.950850433] [forklift_bt_test]: Tick 5 - tree status: FAILURE
+[WARN] [1766479642.950859449] [forklift_bt_test]: 紧急停止触发，行为树已永久停止
+```
+
+### 2.4 导航过程中终止导航
+```
+[INFO] [1766479726.807592035] [main]: 行为树测试节点运行中...
+[INFO] [1766479726.807616045] [main]: 可用服务:
+[INFO] [1766479726.807627688] [main]:   停止导航（触发恢复）: ros2 service call /halt_navigation std_srvs/srv/Empty
+[INFO] [1766479726.807639189] [main]:   紧急停止（立即停止）: ros2 service call /emergency_stop std_srvs/srv/Empty
+[1766479726.908]: MainTaskSequence          IDLE -> RUNNING
+[1766479726.908]: SetGoalLocation           IDLE -> SUCCESS
+[1766479726.908]: SetGoalKey                IDLE -> SUCCESS
+[1766479726.908]: NavigateWithRecovery      IDLE -> RUNNING
+[INFO] [1766479727.414377443] [forklift_bt_test]: [Nav2] 服务不可用，使用模拟模式
+[INFO] [1766479727.414523294] [forklift_bt_test]: [模拟导航] 开始导航到: pickup_zone_A (2.00, 1.00)
+[1766479727.415]: NavigateToGoal            IDLE -> RUNNING
+[1766479727.415]: SafetyMonitor             IDLE -> RUNNING
+[1766479727.415]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479727.415]: CheckEmergencyStop        SUCCESS -> IDLE
+[1766479727.415]: MainParallel              IDLE -> RUNNING
+[INFO] [1766479727.414650998] [forklift_bt_test]: Tick 1 - tree status: RUNNING
+[1766479727.415]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479727.415]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479727.414885440] [forklift_bt_test]: Tick 2 - tree status: RUNNING
+[1766479727.509]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479727.509]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479727.509089341] [forklift_bt_test]: Tick 3 - tree status: RUNNING
+[1766479727.609]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479727.611]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479727.610910762] [forklift_bt_test]: Tick 4 - tree status: RUNNING
+[1766479727.709]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479727.709]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479727.708877840] [forklift_bt_test]: Tick 5 - tree status: RUNNING
+[1766479727.808]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479727.809]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479727.808670774] [forklift_bt_test]: Tick 6 - tree status: RUNNING
+[WARN] [1766479727.845872895] [forklift_bt_test]: 收到停止导航请求，导航将失败并触发恢复流程...
+[WARN] [1766479727.909100019] [forklift_bt_test]: [导航] 收到停止请求，正在停止导航...
+[1766479727.909]: NavigateToGoal            RUNNING -> FAILURE
+[1766479727.909]: RecoverySequence          IDLE -> RUNNING
+[INFO] [1766479727.909270249] [forklift_bt_test]: [恢复动作] 开始执行: clear_costmap (预计耗时: 2.0秒)
+[INFO] [1766479727.909294787] [forklift_bt_test]: [恢复动作] 已清除导航停止标志，准备重试
+[1766479727.910]: ClearCostmapRecovery      IDLE -> RUNNING
+[1766479727.910]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479727.910]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479727.909597028] [forklift_bt_test]: Tick 7 - tree status: RUNNING
+[INFO] [1766479728.008645471] [forklift_bt_test]: [恢复动作] clear_costmap 进行中... 5.0% (0.1/2.0秒)
+[1766479728.009]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479728.009]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479728.008816001] [forklift_bt_test]: Tick 8 - tree status: RUNNING
+[1766479728.108]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479728.108]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479728.108429485] [forklift_bt_test]: Tick 9 - tree status: RUNNING
+[1766479728.208]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479728.208]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479728.208423848] [forklift_bt_test]: Tick 10 - tree status: RUNNING
+[1766479728.308]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479728.308]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479728.308413905] [forklift_bt_test]: Tick 11 - tree status: RUNNING
+[1766479728.408]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479728.409]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479728.408849688] [forklift_bt_test]: Tick 12 - tree status: RUNNING
+[INFO] [1766479728.508155415] [forklift_bt_test]: [恢复动作] clear_costmap 进行中... 29.9% (0.6/2.0秒)
+[1766479728.509]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479728.509]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479728.508520612] [forklift_bt_test]: Tick 13 - tree status: RUNNING
+[1766479728.608]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479728.609]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479728.608940514] [forklift_bt_test]: Tick 14 - tree status: RUNNING
+[1766479728.709]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479728.709]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479728.709111621] [forklift_bt_test]: Tick 15 - tree status: RUNNING
+[1766479728.809]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479728.809]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479728.808882492] [forklift_bt_test]: Tick 16 - tree status: RUNNING
+[INFO] [1766479728.908502103] [forklift_bt_test]: [恢复动作] clear_costmap 进行中... 50.0% (1.0/2.0秒)
+[1766479728.909]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479728.909]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479728.908866744] [forklift_bt_test]: Tick 17 - tree status: RUNNING
+[1766479729.008]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479729.009]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479729.008579274] [forklift_bt_test]: Tick 18 - tree status: RUNNING
+[1766479729.108]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479729.108]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479729.108441738] [forklift_bt_test]: Tick 19 - tree status: RUNNING
+[1766479729.208]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479729.208]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479729.208473001] [forklift_bt_test]: Tick 20 - tree status: RUNNING
+[1766479729.308]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479729.309]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479729.308549787] [forklift_bt_test]: Tick 21 - tree status: RUNNING
+[INFO] [1766479729.409110454] [forklift_bt_test]: [恢复动作] clear_costmap 进行中... 75.0% (1.5/2.0秒)
+[1766479729.409]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479729.409]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479729.409498995] [forklift_bt_test]: Tick 22 - tree status: RUNNING
+[1766479729.509]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479729.509]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479729.509361336] [forklift_bt_test]: Tick 23 - tree status: RUNNING
+[1766479729.609]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479729.609]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479729.608581371] [forklift_bt_test]: Tick 24 - tree status: RUNNING
+[1766479729.709]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479729.709]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479729.709511393] [forklift_bt_test]: Tick 25 - tree status: RUNNING
+[INFO] [1766479729.809969600] [forklift_bt_test]: [恢复动作] clear_costmap 进行中... 95.0% (1.9/2.0秒)
+[1766479729.810]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479729.810]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479729.810153277] [forklift_bt_test]: Tick 26 - tree status: RUNNING
+[INFO] [1766479729.909946175] [forklift_bt_test]: [恢复动作] 完成: clear_costmap (总耗时: 2.0秒)
+[1766479729.910]: ClearCostmapRecovery      RUNNING -> SUCCESS
+[INFO] [1766479730.412349199] [forklift_bt_test]: [Nav2] 服务不可用，使用模拟模式
+[INFO] [1766479730.412623209] [forklift_bt_test]: [模拟导航] 开始导航到: pickup_zone_A (2.00, 1.00)
+[1766479730.413]: RetryNavigateAfterRecovery IDLE -> RUNNING
+[1766479730.413]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479730.413]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479730.413398301] [forklift_bt_test]: Tick 27 - tree status: RUNNING
+[1766479730.414]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479730.414]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479730.413539106] [forklift_bt_test]: Tick 28 - tree status: RUNNING
+[1766479730.510]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479730.510]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479730.509903249] [forklift_bt_test]: Tick 29 - tree status: RUNNING
+[1766479730.610]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479730.610]: CheckEmergencyStop        SUCCESS -> IDLE
+[INFO] [1766479730.609806229] [forklift_bt_test]: Tick 30 - tree status: RUNNING
+[1766479730.709]: CheckEmergencyStop        IDLE -> SUCCESS
+[1766479730.709]: CheckEmergencyStop        SUCCESS -> IDLE
+```
