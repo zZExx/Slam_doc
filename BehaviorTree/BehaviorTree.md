@@ -145,9 +145,9 @@
 
 #### 控制节点的语法类比
 
-* `Sequence` → **顺序语句**（先做 A 再做 B）
-* `Fallback/Selector` → **条件/备选语句**（A 不行就试 B）
-* `Parallel` → **并行语句**（A 和 B 同时推进）
+* `Sequence` -> **顺序语句**（先做 A 再做 B）
+* `Fallback/Selector` -> **条件/备选语句**（A 不行就试 B）
+* `Parallel` -> **并行语句**（A 和 B 同时推进）
 
 #### 常见控制节点语义：
 
@@ -173,7 +173,7 @@
 
 | 装饰器 | 语义解释 | Brief | 执行逻辑 |
 |--------|---------|-------------------|-------------------|
-| **Inverter** | 取反：子节点 `SUCCESS` → 返回 `FAILURE`，子节点 `FAILURE` → 返回 `SUCCESS`；`RUNNING` 原样透传，`SKIPPED` 一般也按原样传递。 | The InverterNode returns SUCCESS if child fails or FAILURE if child succeeds. RUNNING status is propagated. | - If child returns SUCCESS, this node returns FAILURE.<br>- If child returns FAILURE, this node returns SUCCESS.<br>- If child returns RUNNING, this node returns RUNNING. |
+| **Inverter** | 取反：子节点 `SUCCESS` -> 返回 `FAILURE`，子节点 `FAILURE` -> 返回 `SUCCESS`；`RUNNING` 原样透传，`SKIPPED` 一般也按原样传递。 | The InverterNode returns SUCCESS if child fails or FAILURE if child succeeds. RUNNING status is propagated. | - If child returns SUCCESS, this node returns FAILURE.<br>- If child returns FAILURE, this node returns SUCCESS.<br>- If child returns RUNNING, this node returns RUNNING. |
 | **Retry** | 当子节点 `FAILURE` 时，按配置的最大次数自动重新执行；一旦某次执行 `SUCCESS`，立刻返回 `SUCCESS`；在重试期间如果子节点返回 `RUNNING`，则本节点返回 `RUNNING`；如果子节点返回 `SKIPPED`，会直接返回 `SKIPPED`（不重试）；超过最大尝试次数仍失败，则本节点返回 `FAILURE`。支持 `-1` 表示无限重试。 | The RetryNode is used to execute a child several times if it fails. | - If the child returns SUCCESS, the loop is stopped and this node returns SUCCESS.<br>- If the child returns FAILURE, this node will try again up to N times (N is read from port "num_attempts").<br>- If the child returns RUNNING, this node returns RUNNING. |
 | **Repeat** | 子节点 `SUCCESS` 时增加计数；未达 `num_cycles` 时重置子节点，继续下一轮；达到 `num_cycles`（或 `-1` 无限循环）后返回 `SUCCESS`；子节点 `FAILURE` 时立即重置并返回 `FAILURE`；子节点 `SKIPPED` 时会直接返回 `SKIPPED`（不计数，不继续循环）；子节点 `RUNNING` 时本节点也返回 `RUNNING`。 | The RepeatNode is used to execute a child several times, as long as it succeed. | - To succeed, the child must return SUCCESS N times (port "num_cycles").<br>- If the child returns FAILURE, the loop is stopped and this node returns FAILURE. |
 | **ForceSuccess** | 每次先 tick 子节点：如果子节点返回 `SUCCESS` 或 `FAILURE`，都会 `resetChild()` 并强制返回 `SUCCESS`；如果子节点是 `RUNNING` 或 `SKIPPED`，则原样透传，不做修改。 | The ForceSuccessNode returns always SUCCESS or RUNNING. | - If child returns SUCCESS or FAILURE (isStatusCompleted), reset child and return SUCCESS.<br>- If child returns RUNNING or SKIPPED, return child status unchanged. |
@@ -185,8 +185,8 @@
 | **Loop** | 从黑板或静态配置的队列（`std::deque`）中依次取出元素，将元素值写入 `value` 端口，然后执行子节点；只要队列非空且子节点未返回 `FAILURE`，就继续循环；子节点 `SUCCESS` 时重置子节点，继续处理下一个队列元素；子节点 `FAILURE` 时停止循环并返回 `FAILURE`；队列为空时返回 `if_empty` 端口配置的状态（默认 `SUCCESS`）。适合"遍历一组数据并依次处理"的场景。 | The LoopNode class is used to pop_front elements from a std::deque. | - Pop element from queue, copy to "value" port.<br>- Execute child with element value.<br>- If child SUCCESS: reset child, continue with next element.<br>- If child FAILURE: stop and return FAILURE.<br>- If queue empty: return "if_empty" status (default SUCCESS). |
 | **KeepRunningUntilFailure** | 持续执行子节点：子节点 `SUCCESS` 时重置子节点，但本节点返回 `RUNNING`（继续循环）；子节点 `RUNNING` 时本节点也返回 `RUNNING`；一旦子节点返回 `FAILURE`，本节点才返回 `FAILURE`，循环结束。适合"持续监控直到失败"的场景。 | The KeepRunningUntilFailureNode returns always FAILURE or RUNNING. | - If child returns FAILURE: reset child and return FAILURE.<br>- If child returns SUCCESS: reset child and return RUNNING (continue loop).<br>- If child returns RUNNING: return RUNNING. |
 | **Precondition** | 在子节点外加一层脚本条件（基于内置脚本引擎）：只有条件表达式为真时才 tick 子节点，否则直接返回 `FAILURE` / `SKIPPED` 等配置好的结果。 | （源码中 PreconditionNode 没有单独的 @brief 注释） | - Evaluate "if" script condition.<br>- If condition is true OR child is already running: tick child and return child status.<br>- If condition is false AND child not running: return "else" status (default FAILURE).<br>- When child completes, reset _children_running flag. |
-| **UpdatedDecorator** | 仅在子节点状态变化（例如从 RUNNING→SUCCESS）时触发特定逻辑，其余 tick 可能直接透传或短路，可用来做"边沿检测""状态变化通知"等。 | The EntryUpdatedDecorator checks the Timestamp in an entry to determine if the value was updated since the last time (true, the first time). | - Check Timestamp in blackboard entry.<br>- If value was updated since last time (or first time): execute child and return child status.<br>- Otherwise: return [if_not_updated] value (default SKIPPED). |
-| **UpdatedDecorator** | 仅在子节点状态变化（例如从 RUNNING→SUCCESS）时触发特定逻辑，其余 tick 可能直接透传或短路，可用来做"边沿检测""状态变化通知"等。 | The EntryUpdatedDecorator checks the Timestamp in an entry to determine if the value was updated since the last time (true, the first time). If it is, the child will be executed, otherwise [if_not_updated] value is returned. |The EntryUpdatedDecorator checks the Timestamp in an entry to determine if the value was updated since the last time (true, the first time). | - If child is still executing (still_executing_child_ == true): continue ticking child and return child status.<br>- If child is not executing: check the sequence_id of the blackboard entry.<br>  - If entry does not exist: return [if_not_updated] value.<br>  - If previous_id == current_id (value not updated): return [if_not_updated] value.<br>  - If previous_id != current_id (value updated): update sequence_id_, tick child, set still_executing_child_ flag, and return child status.<br>- When child completes (status != RUNNING): reset still_executing_child_ flag. |
+| **UpdatedDecorator** | 仅在子节点状态变化（例如从 RUNNING->SUCCESS）时触发特定逻辑，其余 tick 可能直接透传或短路，可用来做"边沿检测""状态变化通知"等。 | The EntryUpdatedDecorator checks the Timestamp in an entry to determine if the value was updated since the last time (true, the first time). | - Check Timestamp in blackboard entry.<br>- If value was updated since last time (or first time): execute child and return child status.<br>- Otherwise: return [if_not_updated] value (default SKIPPED). |
+| **UpdatedDecorator** | 仅在子节点状态变化（例如从 RUNNING->SUCCESS）时触发特定逻辑，其余 tick 可能直接透传或短路，可用来做"边沿检测""状态变化通知"等。 | The EntryUpdatedDecorator checks the Timestamp in an entry to determine if the value was updated since the last time (true, the first time). If it is, the child will be executed, otherwise [if_not_updated] value is returned. |The EntryUpdatedDecorator checks the Timestamp in an entry to determine if the value was updated since the last time (true, the first time). | - If child is still executing (still_executing_child_ == true): continue ticking child and return child status.<br>- If child is not executing: check the sequence_id of the blackboard entry.<br>  - If entry does not exist: return [if_not_updated] value.<br>  - If previous_id == current_id (value not updated): return [if_not_updated] value.<br>  - If previous_id != current_id (value updated): update sequence_id_, tick child, set still_executing_child_ flag, and return child status.<br>- When child completes (status != RUNNING): reset still_executing_child_ flag. |
 
 > **核心思想：装饰器不改“做什么”，只通过外层规则改“何时做 / 做几次 / 结果怎么解释”。**
 
@@ -195,8 +195,8 @@
 
 - 不产生物理动作，只读取黑板或传感器状态做逻辑判断；
 - 一般在单个 tick 内就完成判断并返回：
-  - 满足条件 → `SUCCESS`
-  - 不满足 → `FAILURE`
+  - 满足条件 -> `SUCCESS`
+  - 不满足 -> `FAILURE`
 - 通常不应该返回 `RUNNING`（除非你真的实现了一个“耗时判断”的 Condition）。
 
 语法角色：
@@ -215,9 +215,9 @@
   - 后续 tick 调用 `onRunning()`，在内部驱动长期动作；
   - `onHalted()` 处理被中断时的清理（停止控制指令、释放资源等）；
 - 运行中通常返回：
-  - `RUNNING` → 动作正在进行中；
-  - `SUCCESS` → 动作完成；
-  - `FAILURE` → 动作失败（例如规划失败、控制异常）。
+  - `RUNNING` -> 动作正在进行中；
+  - `SUCCESS` -> 动作完成；
+  - `FAILURE` -> 动作失败（例如规划失败、控制异常）。
 
 语法角色：
 
@@ -328,4 +328,107 @@ Nav2 会统一使用 Fallback + RecoveryNode 构造“恢复树”：
 
 # **4.行为树例子**
 
-![](image.png)
+<img title= "测试行为树" src=".\image\image.png" width=80%> 
+
+## 1.当前测试行为树结构
+```
+Parallel (MainParallel)
+├─ Sequence (MainTaskSequence) - 主流程序列
+│  ├─ SetBlackboard (SetGoalLocation) - 设置目标位置
+│  ├─ SetBlackboard (SetGoalKey) - 设置目标键名
+│  └─ Fallback (NavigateWithRecovery) - 导航与恢复策略
+│     ├─ NavigateToGoalAction - 正常导航 (用2秒耗时模拟)
+│     └─ Sequence (RecoverySequence) - 恢复流程
+│        ├─ RecoveryAction - 恢复动作（用5秒耗时模拟）
+│        └─ NavigateToGoalAction - 重试导航
+│
+└─ KeepRunningUntilFailure (SafetyMonitor) - 安全监控
+   └─ EmergencyStopCondition - 紧急停止检查
+```
+## 2. 执行流程
+
+### 2.1 参数设置
+  1. Tick频率：100ms
+  2. 导航：1s
+  3. 恢复：2s
+  4. 重试导航：1s
+
+### 2.2 测试流程状态
+
+```text
+Tick 1:
+  ├─ Parallel(MainParallel) 开始执行
+  ├─ MainTaskSequence:
+  │  ├─ SetGoalLocation -> SUCCESS
+  │  ├─ SetGoalKey -> SUCCESS
+  │  └─ NavigateWithRecovery(Fallback):
+  │     └─ NavigateToGoal -> RUNNING (开始导航，导航1s)
+  └─ SafetyMonitor:
+     └─ CheckEmergencyStop -> SUCCESS (无紧急停止)
+
+Tick 2-12:
+  ├─ NavigateToGoal -> RUNNING (导航进行中)
+  └─ CheckEmergencyStop -> SUCCESS (持续监控)
+
+Tick 13:
+  ├─ NavigateToGoal -> SUCCESS (到达目标)
+  ├─ MainTaskSequence -> SUCCESS
+  └─ Parallel(MainParallel) -> SUCCESS（本轮流程完成）
+
+--------------------------------------------------
+# 触发停止导航，进入恢复流程
+
+Tick 38:
+  └─ 外部调用 /halt_navigation（请求停止导航）
+
+Tick 39:
+  ├─ NavigateToGoal -> FAILURE（检测到 halt_navigation）
+  └─ NavigateWithRecovery(Fallback):
+     └─ RecoverySequence:
+        └─ ClearCostmapRecovery -> RUNNING（开始恢复2s）
+
+Tick 40-58:
+  ├─ ClearCostmapRecovery -> RUNNING（恢复进行中）
+  └─ CheckEmergencyStop -> SUCCESS（持续监控）
+
+Tick 59:
+  ├─ ClearCostmapRecovery -> SUCCESS（恢复完成）
+  └─ RetryNavigateAfterRecovery -> RUNNING（开始重试导航1s）
+
+Tick 60-70:
+  ├─ RetryNavigateAfterRecovery -> RUNNING（重试导航中）
+  └─ CheckEmergencyStop -> SUCCESS（持续监控）
+
+Tick 71:
+  ├─ RetryNavigateAfterRecovery -> SUCCESS（重试导航成功）
+  ├─ RecoverySequence -> SUCCESS
+  ├─ NavigateWithRecovery(Fallback) -> SUCCESS
+  ├─ MainTaskSequence -> SUCCESS
+  └─ Parallel(MainParallel) -> SUCCESS（恢复+重试流程完成）
+
+--------------------------------------------------
+触发紧急停止，终止整个流程
+Tick 80: 外部触发紧急停止服务 /emergency_stop，emergency_stop = true
+
+Tick 81:
+  ├─ SafetyMonitor:
+  │  └─ CheckEmergencyStop:
+  │       emergency_stop = true
+  │       → SUCCESS -> FAILURE（条件检测到紧急停止）
+  │  SafetyMonitor: RUNNING -> FAILURE
+  ├─ Parallel(MainParallel):
+  │  ├─ 由于 SafetyMonitor 失败（failure_threshold=1）
+  │  └─ MainParallel: RUNNING -> FAILURE（立即判定整棵树失败）
+  ├─ 导航节点被中断：
+  │  ├─ NavigateToGoal: RUNNING -> IDLE（onHalted 被调用，停止导航）
+  │  └─ NavigateWithRecovery: RUNNING -> IDLE
+  └─ MainTaskSequence: RUNNING -> IDLE
+
+之后（Tick 82+）:
+  ├─ tree_halted_ = true（测试节点内部标记为“树已永久停止”）
+  └─ runBehaviorTree() 直接返回，不再继续 tick，行为树保持停止状态
+```
+
+> **为什么模拟耗时时间和tick总耗时时间不一致？**
+> 
+> timeout模拟耗时是按照真实时间，而**非按tick数量计算**
