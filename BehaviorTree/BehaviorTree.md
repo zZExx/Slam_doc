@@ -516,3 +516,36 @@ INFO] [1766479642.034315669] [main]: 行为树测试节点运行中...
 [1766479730.709]: CheckEmergencyStop        IDLE -> SUCCESS
 [1766479730.709]: CheckEmergencyStop        SUCCESS -> IDLE
 ```
+
+## 3. 导航终止与紧急停止实现
+
+- 节点：`Node("forklift_bt_test")`
+- 提供两个服务，使用 `std_srvs/srv/Empty`：
+  - `/halt_navigation`：停止导航过程 + 恢复导航
+  - `/emergency_stop`：停止整个流程 + 永久停机
+
+### /halt_navigation（停止导航 + 恢复）
+- 回调：`haltNavigationCallback`
+- 动作：
+  - 将成员 `halt_navigation_ = true`
+  - 黑板设置 `halt_navigation = true`
+- 行为树影响：
+  - `NavigateToGoalAction::onRunning()` 读取到 `halt_navigation` 后返回 `FAILURE`
+  - Fallback 进入恢复子树：`RecoveryAction` 运行并清除 `halt_navigation`
+  - 恢复完成后执行 `RetryNavigateAfterRecovery` 重试导航
+- 结果：树继续运行，尝试恢复并重试，适用于非致命软停
+
+### /emergency_stop（紧急停止 + 永久停机）
+- 回调：`emergencyStopCallback`
+- 动作：
+  - 黑板设置 `emergency_stop = true`
+  - 置位 `tree_halted_ = true`（后续不再 tick）
+- 行为树影响：
+  - `EmergencyStopCondition` 在 SafetyMonitor 分支立即返回 `FAILURE`
+  - Parallel（`failure_threshold=1`）立刻判定整体 `FAILURE`，halt 所有子节点（导航、恢复等）
+  - 因 `tree_halted_` 已置位，`runBehaviorTree()` 后续直接返回，不再继续调度
+- 结果：立即停机、永久停止，需人工或外部重启
+
+### 服务调用示例
+- 停止导航（软停）：`ros2 service call /halt_navigation std_srvs/srv/Empty`
+- 紧急停止（硬停）：`ros2 service call /emergency_stop std_srvs/srv/Empty`
