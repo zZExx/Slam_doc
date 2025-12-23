@@ -261,7 +261,7 @@ BT 的 Tick 机制决定了它可以：
 
 ---
 
-# **3.4 Nav2 的行为树语法扩展（概念级）**
+# **3.4 Nav2 的行为树语法扩展**
 
 Nav2 采用 BehaviorTree.CPP 并扩展了一些语法概念。
 
@@ -326,3 +326,6 @@ Nav2 会统一使用 Fallback + RecoveryNode 构造“恢复树”：
 
 ---
 
+# **4.行为树例子**
+
+![](image.png)
